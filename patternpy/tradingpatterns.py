@@ -54,6 +54,7 @@ def calculate_support_resistance(df, window=3):
     df['support'] = mean_low - std_dev * std_low
     df['resistance'] = mean_high + std_dev * std_high
     return df
+
 def detect_triangle_pattern(df, window=3):
     # Define the rolling window
     roll_window = window
@@ -76,8 +77,9 @@ def detect_wedge(df, window=3):
     # Create a rolling window for High and Low
     df['high_roll_max'] = df['High'].rolling(window=roll_window).max()
     df['low_roll_min'] = df['Low'].rolling(window=roll_window).min()
-    df['trend_high'] = df['High'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else -1 if (x[-1]-x[0])<0 else 0)
-    df['trend_low'] = df['Low'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else -1 if (x[-1]-x[0])<0 else 0)
+    
+    df['trend_high'] = df['High'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else (-1 if (x[-1]-x[0])<0 else 0), raw=True)
+    df['trend_low'] = df['Low'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else (-1 if (x[-1]-x[0])<0 else 0), raw=True)
     # Create a boolean mask for Wedge Up pattern
     mask_wedge_up = (df['high_roll_max'] >= df['High'].shift(1)) & (df['low_roll_min'] <= df['Low'].shift(1)) & (df['trend_high'] == 1) & (df['trend_low'] == 1)
     # Create a boolean mask for Wedge Down pattern
@@ -88,6 +90,7 @@ def detect_wedge(df, window=3):
     df.loc[mask_wedge_up, 'wedge_pattern'] = 'Wedge Up'
     df.loc[mask_wedge_down, 'wedge_pattern'] = 'Wedge Down'
     return df
+
 def detect_channel(df, window=3):
     # Define the rolling window
     roll_window = window
@@ -96,8 +99,8 @@ def detect_channel(df, window=3):
     # Create a rolling window for High and Low
     df['high_roll_max'] = df['High'].rolling(window=roll_window).max()
     df['low_roll_min'] = df['Low'].rolling(window=roll_window).min()
-    df['trend_high'] = df['High'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else -1 if (x[-1]-x[0])<0 else 0)
-    df['trend_low'] = df['Low'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else -1 if (x[-1]-x[0])<0 else 0)
+    df['trend_high'] = df['High'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else (-1 if (x[-1]-x[0])<0 else 0), raw=True)
+    df['trend_low'] = df['Low'].rolling(window=roll_window).apply(lambda x: 1 if (x[-1]-x[0])>0 else (-1 if (x[-1]-x[0])<0 else 0), raw=True)
     # Create a boolean mask for Channel Up pattern
     mask_channel_up = (df['high_roll_max'] >= df['High'].shift(1)) & (df['low_roll_min'] <= df['Low'].shift(1)) & (df['high_roll_max'] - df['low_roll_min'] <= channel_range * (df['high_roll_max'] + df['low_roll_min'])/2) & (df['trend_high'] == 1) & (df['trend_low'] == 1)
     # Create a boolean mask for Channel Down pattern
@@ -163,8 +166,8 @@ def detect_trendline(df, window=2):
 
 def find_pivots(df):
     # Calculate differences between consecutive highs and lows
-    high_diffs = df['high'].diff()
-    low_diffs = df['low'].diff()
+    high_diffs = df['High'].diff()
+    low_diffs = df['Low'].diff()
 
     # Find higher high
     higher_high_mask = (high_diffs > 0) & (high_diffs.shift(-1) < 0)

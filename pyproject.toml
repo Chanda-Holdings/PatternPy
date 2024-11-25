@@ -7,7 +7,7 @@ authors = ["Keith Orange"]
 license = "CC BY-NC-SA 4.0"
 readme = "README.md"
 packages = [
-    { include = "tradingpatterns" }
+    { include = "patternpy" }
 ]
 
 [tool.poetry.dependencies]
