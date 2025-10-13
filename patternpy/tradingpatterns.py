@@ -134,35 +134,57 @@ def detect_double_top_bottom(df, window=3, threshold=0.05):
     return df
 
 def detect_trendline(df, window=2):
-    # Define the rolling window
-    roll_window = window
-    # Create new columns for the linear regression slope and y-intercept
-    df['slope'] = np.nan
-    df['intercept'] = np.nan
+      """
+      Fully vectorized version using NumPy sliding windows (no loops).
+      """
+      n = len(df)
 
-    for i in range(window, len(df)):
-        x = np.array(range(i-window, i))
-        y = df['Close'][i-window:i]
-        A = np.vstack([x, np.ones(len(x))]).T
-        m, c = np.linalg.lstsq(A, y, rcond=None)[0]
-        df.at[df.index[i], 'slope'] = m
-        df.at[df.index[i], 'intercept'] = c
+      if n < window + 1:
+          df['slope'] = np.nan
+          df['intercept'] = np.nan
+          df['support'] = np.nan
+          df['resistance'] = np.nan
+          return df
 
-    # Create a boolean mask for trendline support
-    mask_support = df['slope'] > 0
+      close_values = df['Close'].values
 
-    # Create a boolean mask for trendline resistance
-    mask_resistance = df['slope'] < 0
+      # Create sliding windows view (no copying)
+      from numpy.lib.stride_tricks import sliding_window_view
+      windows = sliding_window_view(close_values, window)
 
-    # Create new columns for trendline support and resistance
-    df['support'] = np.nan
-    df['resistance'] = np.nan
+      # Precompute x values
+      x = np.arange(window)
+      x_mean = x.mean()
+      x_centered = x - x_mean
+      x_denominator = np.sum(x_centered ** 2)
 
-    # Populate the new columns using the boolean masks
-    df.loc[mask_support, 'support'] = df['Close'] * df['slope'] + df['intercept']
-    df.loc[mask_resistance, 'resistance'] = df['Close'] * df['slope'] + df['intercept']
+      # Vectorized computation across all windows
+      y_means = windows.mean(axis=1)
+      y_centered = windows - y_means[:, np.newaxis]
 
-    return df
+      # Calculate slopes and intercepts for all windows at once
+      numerators = np.sum(x_centered * y_centered, axis=1)
+      slopes_computed = numerators / x_denominator
+      intercepts_computed = y_means - slopes_computed * x_mean
+
+      # Pad with NaN for first 'window' rows
+      slopes = np.concatenate([np.full(window, np.nan), slopes_computed])
+      intercepts = np.concatenate([np.full(window, np.nan), intercepts_computed])
+
+      df['slope'] = slopes
+      df['intercept'] = intercepts
+
+      # Vectorized support/resistance calculation
+      mask_support = slopes > 0
+      mask_resistance = slopes < 0
+
+      support_values = np.where(mask_support, close_values * slopes + intercepts, np.nan)
+      resistance_values = np.where(mask_resistance, close_values * slopes + intercepts, np.nan)
+
+      df['support'] = support_values
+      df['resistance'] = resistance_values
+
+      return df
 
 def find_pivots(df):
     # Calculate differences between consecutive highs and lows
