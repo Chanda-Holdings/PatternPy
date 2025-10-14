@@ -12,8 +12,8 @@ def detect_head_shoulder(df, window=3):
     mask_head_shoulder = ((df['high_roll_max'] > df['High'].shift(1)) & (df['high_roll_max'] > df['High'].shift(-1)) & (df['High'] < df['High'].shift(1)) & (df['High'] < df['High'].shift(-1)))
     # Create a boolean mask for Inverse Head and Shoulder pattern
     mask_inv_head_shoulder = ((df['low_roll_min'] < df['Low'].shift(1)) & (df['low_roll_min'] < df['Low'].shift(-1)) & (df['Low'] > df['Low'].shift(1)) & (df['Low'] > df['Low'].shift(-1)))
-    # Create a new column for Head and Shoulder and its inverse pattern with string dtype
-    df['head_shoulder_pattern'] = pd.Series(dtype='string')
+    # Create a new column for Head and Shoulder and its inverse pattern and populate it using the boolean masks
+    df['head_shoulder_pattern'] = np.nan
     df.loc[mask_head_shoulder, 'head_shoulder_pattern'] = 'Head and Shoulder'
     df.loc[mask_inv_head_shoulder, 'head_shoulder_pattern'] = 'Inverse Head and Shoulder'
     return df 
@@ -31,8 +31,8 @@ def detect_multiple_tops_bottoms(df, window=3):
     mask_top = (df['high_roll_max'] >= df['High'].shift(1)) & (df['close_roll_max'] < df['Close'].shift(1))
     # Create a boolean mask for multiple bottom pattern
     mask_bottom = (df['low_roll_min'] <= df['Low'].shift(1)) & (df['close_roll_min'] > df['Close'].shift(1))
-    # Create a new column for multiple top bottom pattern with string dtype
-    df['multiple_top_bottom_pattern'] = pd.Series(dtype='string')
+    # Create a new column for multiple top bottom pattern and populate it using the boolean masks
+    df['multiple_top_bottom_pattern'] = np.nan
     df.loc[mask_top, 'multiple_top_bottom_pattern'] = 'Multiple Top'
     df.loc[mask_bottom, 'multiple_top_bottom_pattern'] = 'Multiple Bottom'
     return df
@@ -65,8 +65,8 @@ def detect_triangle_pattern(df, window=3):
     mask_asc = (df['high_roll_max'] >= df['High'].shift(1)) & (df['low_roll_min'] <= df['Low'].shift(1)) & (df['Close'] > df['Close'].shift(1))
     # Create a boolean mask for descending triangle pattern
     mask_desc = (df['high_roll_max'] <= df['High'].shift(1)) & (df['low_roll_min'] >= df['Low'].shift(1)) & (df['Close'] < df['Close'].shift(1))
-    # Create a new column for triangle pattern with string dtype
-    df['triangle_pattern'] = pd.Series(dtype='string')
+    # Create a new column for triangle pattern and populate it using the boolean masks
+    df['triangle_pattern'] = np.nan
     df.loc[mask_asc, 'triangle_pattern'] = 'Ascending Triangle'
     df.loc[mask_desc, 'triangle_pattern'] = 'Descending Triangle'
     return df
@@ -86,7 +86,7 @@ def detect_wedge(df, window=3):
         # Create a boolean mask for Wedge Down pattern
     mask_wedge_down = (df['high_roll_max'] <= df['High'].shift(1)) & (df['low_roll_min'] >= df['Low'].shift(1)) & (df['trend_high'] == -1) & (df['trend_low'] == -1)
     # Create a new column for Wedge Up and Wedge Down pattern and populate it using the boolean masks
-    df['wedge_pattern'] = pd.Series(dtype='string')
+    df['wedge_pattern'] = np.nan
     df.loc[mask_wedge_up, 'wedge_pattern'] = 'Wedge Up'
     df.loc[mask_wedge_down, 'wedge_pattern'] = 'Wedge Down'
     return df
@@ -106,7 +106,7 @@ def detect_channel(df, window=3):
     # Create a boolean mask for Channel Down pattern
     mask_channel_down = (df['high_roll_max'] <= df['High'].shift(1)) & (df['low_roll_min'] >= df['Low'].shift(1)) & (df['high_roll_max'] - df['low_roll_min'] <= channel_range * (df['high_roll_max'] + df['low_roll_min'])/2) & (df['trend_high'] == -1) & (df['trend_low'] == -1)
     # Create a new column for Channel Up and Channel Down pattern and populate it using the boolean masks
-    df['channel_pattern'] = pd.Series(dtype='string')
+    df['channel_pattern'] = np.nan
     df.loc[mask_channel_up, 'channel_pattern'] = 'Channel Up'
     df.loc[mask_channel_down, 'channel_pattern'] = 'Channel Down'
     return df
@@ -127,7 +127,7 @@ def detect_double_top_bottom(df, window=3, threshold=0.05):
     mask_double_bottom = (df['low_roll_min'] <= df['Low'].shift(1)) & (df['low_roll_min'] <= df['Low'].shift(-1)) & (df['Low'] > df['Low'].shift(1)) & (df['Low'] > df['Low'].shift(-1)) & ((df['High'].shift(1) - df['Low'].shift(1)) <= range_threshold * (df['High'].shift(1) + df['Low'].shift(1))/2) & ((df['High'].shift(-1) - df['Low'].shift(-1)) <= range_threshold * (df['High'].shift(-1) + df['Low'].shift(-1))/2)
 
     # Create a new column for Double Top and Double Bottom pattern and populate it using the boolean masks
-    df['double_pattern'] = pd.Series(dtype='string')
+    df['double_pattern'] = np.nan
     df.loc[mask_double_top, 'double_pattern'] = 'Double Top'
     df.loc[mask_double_bottom, 'double_pattern'] = 'Double Bottom'
 
@@ -203,8 +203,8 @@ def find_pivots(df):
     # Find higher low
     higher_low_mask = (low_diffs > 0) & (low_diffs.shift(-1) < 0)
 
-    # Create signals column with string dtype
-    df['signal'] = pd.Series(dtype='string')
+    # Create signals column
+    df['signal'] = ''
     df.loc[higher_high_mask, 'signal'] = 'HH'
     df.loc[lower_low_mask, 'signal'] = 'LL'
     df.loc[lower_high_mask, 'signal'] = 'LH'
