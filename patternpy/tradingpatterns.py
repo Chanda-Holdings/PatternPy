@@ -167,9 +167,9 @@ def detect_trendline(df, window=2):
       slopes_computed = numerators / x_denominator
       intercepts_computed = y_means - slopes_computed * x_mean
 
-      # Pad with NaN for first 'window' rows
-      slopes = np.concatenate([np.full(window, np.nan), slopes_computed])
-      intercepts = np.concatenate([np.full(window, np.nan), intercepts_computed])
+      # Pad with NaN for first 'window-1' rows (sliding window creates n-window+1 outputs)
+      slopes = np.concatenate([np.full(window - 1, np.nan), slopes_computed])
+      intercepts = np.concatenate([np.full(window - 1, np.nan), intercepts_computed])
 
       df['slope'] = slopes
       df['intercept'] = intercepts
